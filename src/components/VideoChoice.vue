@@ -2,12 +2,14 @@
   <div class="video-choice">
     <div class="video-choice__player">
       <video ref="video"
+             @loadeddata="loading = false"
+             @loadstart="loading = true"
              @playing="playing = true"
              @pause="playing = false"
-             @timeupdate="time = $event.target.currentTime"/>
+             @timeupdate="timeUpdated($event.target)" muted/>
       <div class="video-choice__player__controls"
-           :class="{ show: loading }">
-        <div class="video-choice__player__controls__play">
+           :class="{ show: loading || showOptions || !playing }">
+        <div class="video-choice__player__controls__play" v-if="!showOptions">
           <div class="video-choice__player__controls__play__loader" v-if="loading">
             <span></span>
           </div>
@@ -20,28 +22,32 @@
                v-else>
           </div>
         </div>
+        <div class="video-choice__player__controls__options" v-else>
+          <div class="video-choice__player__controls__options__question">
+            {{ currentFrame.question }}
+          </div>
+          <div class="video-choice__player__controls__options__items">
+            <div class="video-choice__player__controls__options__items__answer"
+                 v-for="(op, index) in currentFrame.options"
+                 :style="{ flexBasis: `${100 / currentFrame.options.length}%` }"
+                 @click="setFrame(op.frame)">
+              {{ op.text }}
+            </div>
+          </div>
+        </div>
         <div class="video-choice__player__controls__bottom" v-show="!loading">
           <div class="video-choice__player__controls__bottom__time">
-            <input type="range"
-                   step="0.0001"
-                   v-model="time"
-                   :min="start"
-                   :max="duration">
-            <div class="video-choice__player__controls__bottom__time__line">
-              <div class="video-choice__player__controls__bottom__time__line__progress"
-                   :style="{ width: `${(time * 100) / video.end}%` }">
+            <div ref="line"
+                 class="video-choice__player__controls__bottom__time__line"
+                 @click="changeRate">
+                <div class="video-choice__player__controls__bottom__time__line__progress"
+                   :style="{ width: `${!!duration ? (((time - currentFrame.start ) * 100) / duration) : 0 }%` }">
                 <div class="video-choice__player__controls__bottom__time__line__progress__ball">
-                  <div class="video-choice__player__controls__bottom__time__line__progress__ball__small"></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="video-choice__modal">
-      <div class="video-choice__modal__content">
-
       </div>
     </div>
   </div>
@@ -52,12 +58,15 @@ export default {
   name: 'VideoChoice',
   data () {
     return {
-      time: 2,
+      time_old: 0,
+      time: 0,
+      volume: 0,
       loading: false,
       playing: false,
-      duration: 0,
       currentFrame: null,
-      previousFrame: null
+      previousFrame: null,
+      showOptions: false,
+      ended: false
     }
   },
   props: {
@@ -67,11 +76,48 @@ export default {
     }
   },
   computed: {
-    start () {
-      if (!!previousFrame) {
-        // this.
+    duration () {
+      return !this.currentFrame ? 0 : this.currentFrame.end - this.currentFrame.start
+    }
+  },
+  methods: {
+    setFrame (index) {
+      this.time = this.video.frames[index].start
+      this.showOptions = false
+      if (!this.currentFrame) {
+        this.$set(this, 'currentFrame', this.video.frames[index])
+      } else {
+        this.$set(this, 'previousFrame', this.currentFrame)
+        this.$set(this, 'currentFrame', this.video.frames[index])
+        this.$refs['video'].play()
+      }
+    },
+    timeUpdated (video) {
+      this.$set(this, 'time_old', this.time)
+      this.$set(this, 'time', video.currentTime)
+      if (this.currentFrame.end >= this.time_old && this.currentFrame.end <= this.time) {
+        video.pause()
+        if (!!this.currentFrame.options && !!this.currentFrame.options.length) this.showOptions = true
+      }
+    },
+    changeRate (ev) {
+      if (!ev.target.classList.contains('video-choice__player__controls__bottom__time__line__progress__ball')) {
+        const el = this.$refs['line']
+        const width = el.scrollWidth - 1
+        const position = ev.pageX - 25
+        this.$refs['video'].currentTime = ((this.duration * position) / width) + this.currentFrame.start
+        if (this.showOptions) {
+          this.$refs['video'].play()
+          this.showOptions = false
+        }
       }
     }
+  },
+  mounted () {
+    this.setFrame(0)
+    this.$refs['video'].src = this.video.src
+    this.$refs['video'].load()
+    // this.$refs['video'].play()
   }
 }
 </script>
@@ -194,16 +240,46 @@ export default {
           }
         }
         &__icon {
+          cursor: pointer;
           height: 50%;
           width: 50%;
           margin: auto;
           background-size: cover;
           &.play {
-            margin-left: 30px;
+            margin-left: 30%;
             background-image: url('../assets/play-button.svg');
           }
           &.pause {
             background-image: url('../assets/pause-button.svg');
+          }
+        }
+      }
+      &__options {
+        display: grid;
+        align-self: flex-start;
+        grid-template-rows: 1fr 2fr;
+        height: calc(100% - #{50px});
+        width: 100%;
+        &__question {
+          color: #fff;
+          font-size: 2rem;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        &__items {
+          display: flex;
+          justify-content: space-around;
+          &__answer {
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px;
+            border-radius: 15px;
+            background-color: rgba(#fff, .75);
+            color: #555;
+            font-size: 1.6rem;
           }
         }
       }
@@ -232,7 +308,6 @@ export default {
             transition: all .2s;
             cursor: pointer;
             &__progress {
-              width: 10%;
               position: relative;
               height: 100%;
               background-color: #888;
