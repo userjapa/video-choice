@@ -86,12 +86,12 @@ export default {
             options: [
               {
                 text: 'Accept',
-                frame: 6,
+                frame: 4,
                 correct: true
               },
               {
                 text: 'Refuse',
-                frame: 7,
+                frame: 6,
                 correct: true
               }
             ]
@@ -105,12 +105,12 @@ export default {
             options: [
               {
                 text: 'Accept',
-                frame: 4,
+                frame: 2,
                 correct: false
               },
               {
                 text: 'Refuse',
-                frame: 6,
+                frame: 5,
                 correct: true
               }
             ]
