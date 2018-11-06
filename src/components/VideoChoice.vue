@@ -2,62 +2,73 @@
   <div class="video-choice">
     <div class="video-choice__player">
       <video ref="video"
-             @loadeddata="loading = false"
+             @loadeddata="loading = false; fullDuration = $event.target.duration"
              @loadstart="loading = true"
              @playing="playing = true"
              @pause="playing = false"
              @timeupdate="timeUpdated($event.target)" muted/>
-      <transition name="controls-transition">
-        <div class="video-choice__player__controls"
-             :class="{ show: loading || showOptions || !playing }">
-          <div class="video-choice__player__controls__play" v-if="!showOptions">
-            <div class="video-choice__player__controls__play__loader" v-if="loading">
-              <span></span>
-            </div>
-            <div class="video-choice__player__controls__play__icon"
-                 :class="{
-                   play: !playing,
-                   pause: playing
-                 }"
-                 @click="play()"
-                 v-else>
+      <div class="video-choice__player__controls"
+           :class="{ show: (loading || showOptions || !playing) }">
+        <transition name="fade">
+        <div class="video-choice__player__controls__play" key="play" v-if="!showOptions">
+          <div class="video-choice__player__controls__play__loader" v-if="loading">
+            <span></span>
+          </div>
+          <div class="video-choice__player__controls__play__icon"
+               :class="{
+                 play: !playing,
+                 pause: playing
+               }"
+               @click="play()"
+               v-else>
+          </div>
+        </div>
+        <div class="video-choice__player__controls__options" key="options" v-else>
+          <div class="video-choice__player__controls__options__question">
+            {{ currentFrame.question }}
+          </div>
+          <div class="video-choice__player__controls__options__items">
+            <div class="video-choice__player__controls__options__items__answer"
+                 v-for="(op, index) in currentFrame.options"
+                 :style="{ flexBasis: `${100 / currentFrame.options.length}%` }"
+                 @click="select(op)">
+              {{ op.text }}
             </div>
           </div>
-          <div class="video-choice__player__controls__options" v-else>
-            <div class="video-choice__player__controls__options__question">
-              {{ currentFrame.question }}
-            </div>
-            <div class="video-choice__player__controls__options__items">
-              <div class="video-choice__player__controls__options__items__answer"
-                   v-for="(op, index) in currentFrame.options"
-                   :style="{ flexBasis: `${100 / currentFrame.options.length}%` }"
-                   @click="setFrame(op.frame)">
-                {{ op.text }}
-              </div>
-            </div>
+          <transition name="fade">
+          <div class="video-choice__player__controls__options__feedback"
+               :class="{
+                 true: optionIsCorrect,
+                 false: !optionIsCorrect,
+                 show: showFeedback
+               }"
+               v-show="showFeedback">
           </div>
-          <div class="video-choice__player__controls__bottom" v-show="!loading">
-            <div class="video-choice__player__controls__bottom__time">
-              <div ref="line"
-                   class="video-choice__player__controls__bottom__time__line"
-                   @click="changeRate">
-                <div class="video-choice__player__controls__bottom__time__line__progress"
-                     :style="{ width: `${percent}%` }">
-                  <div ref="ball"
-                       class="video-choice__player__controls__bottom__time__line__progress__ball"
-                       @mousedown.prevent="dragRate">
-                  </div>
+          </transition>
+        </div>
+        </transition>
+        <div class="video-choice__player__controls__bottom" v-show="!loading">
+          <div class="video-choice__player__controls__bottom__time">
+            <div ref="line"
+                 class="video-choice__player__controls__bottom__time__line"
+                 @click="changeRate">
+              <div class="video-choice__player__controls__bottom__time__line__progress"
+                   :style="{ width: `${percent}%` }">
+                <div ref="ball"
+                     class="video-choice__player__controls__bottom__time__line__progress__ball"
+                     @mousedown.prevent="dragRate">
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </transition>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+
 export default {
   name: 'VideoChoice',
   data () {
@@ -70,21 +81,27 @@ export default {
       currentFrame: null,
       previousFrame: null,
       showOptions: false,
-      ended: false
+      ended: false,
+      optionIsCorrect: false,
+      showFeedback: false,
+      fullDuration: 0
     }
   },
   props: {
     video: {
       type: Object,
-      default: {}
+      default: () => ({})
     }
   },
   computed: {
     duration () {
-      return !this.currentFrame ? 0 : this.currentFrame.end - this.currentFrame.start
+      return !this.currentFrame ? this.fullDuration : this.currentFrame.end - this.currentFrame.start
     },
     percent () {
-      const percent = !!this.duration ? (((this.time - this.currentFrame.start ) * 100) / this.duration) : 0
+      let percent = 0
+      if (!!this.currentFrame) percent = !!this.duration ? (((this.time - this.currentFrame.start ) * 100) / this.duration) : 0
+      else percent = (this.time * 100) / this.fullDuration
+      if (isNaN(percent)) percent = 0
       return percent > 100 ? 100 : percent
     }
   },
@@ -99,28 +116,31 @@ export default {
       }
     },
     async setFrame (index) {
-      this.$refs['video'].currentTime = this.video.frames[index].start
-      if (this.showOptions) {
-        const timeout = () => new Promise(resolve => setTimeout(resolve(this.showOptions = false), 500))
-        await timeout()
-      }
-      if (!this.currentFrame) {
-        this.$set(this, 'currentFrame', this.video.frames[index])
-      } else {
-        this.$set(this, 'previousFrame', this.currentFrame)
-        this.$set(this, 'currentFrame', this.video.frames[index])
-        this.play()
-      }
-      if (!this.currentFrame.options || !this.currentFrame.options.length) {
-        this.ended = true
+      if (!!this.video.frames && this.video.frames.length) {
+        this.$refs['video'].currentTime = this.video.frames[index].start
+        if (this.showOptions) this.showOptions = false
+        if (!this.currentFrame) {
+          this.$set(this, 'currentFrame', this.video.frames[index])
+        } else {
+          this.$set(this, 'previousFrame', this.currentFrame)
+          this.$set(this, 'currentFrame', this.video.frames[index])
+          this.play()
+        }
+        if (!this.currentFrame.options || !this.currentFrame.options.length) this.ended = true
+        else this.currentFrame.options.map(op => (this.$set(op, 'selected', false)))
       }
     },
     timeUpdated (video) {
-      this.$set(this, 'time_old', this.time)
-      this.$set(this, 'time', video.currentTime)
-      if (this.currentFrame.end >= this.time_old && this.currentFrame.end <= this.time) {
-        video.pause()
-        if (!!this.currentFrame.options && !!this.currentFrame.options.length) this.showOptions = true
+      if (!!this.currentFrame) {
+        this.$set(this, 'time_old', this.time)
+        this.$set(this, 'time', video.currentTime)
+        if (this.currentFrame.end >= this.time_old && this.currentFrame.end <= this.time) {
+          video.pause()
+          if (!!this.currentFrame.options && !!this.currentFrame.options.length) this.showOptions = true
+        }
+      } else {
+        this.$set(this, 'time_old', this.time)
+        this.$set(this, 'time', video.currentTime)
       }
     },
     changeRate (ev) {
@@ -128,7 +148,8 @@ export default {
         const el = this.$refs['line']
         const width = el.scrollWidth - 1
         const position = ev.pageX - 25
-        this.$refs['video'].currentTime = ((this.duration * position) / width) + this.currentFrame.start
+        if (!!this.currentFrame) this.$refs['video'].currentTime = ((this.duration * position) / width) + this.currentFrame.start
+        else this.$refs['video'].currentTime = ((this.fullDuration * position) / width)
         if (this.showOptions) {
           setTimeout(() => {
             this.showOptions = false
@@ -138,6 +159,7 @@ export default {
       }
     },
     dragRate (ev) {
+      if (this.showOptions) this.showOptions = false
       const wasPlaying = this.playing
       const video = this.$refs['video']
       const line = this.$refs['line']
@@ -152,9 +174,8 @@ export default {
 
         if (position < 0) position = 0
         if (position > rightEdge) position = rightEdge
-        console.log(((this.duration * position) / line.scrollWidth) + this.currentFrame.start)
-        video.currentTime = ((this.duration * position) / line.scrollWidth) + this.currentFrame.start
-
+        if (!!this.currentFrame) video.currentTime = ((this.duration * position) / line.scrollWidth) + this.currentFrame.start
+        else video.currentTime = ((this.duration * position) / line.scrollWidth)
       }
 
       const onMouseUp = () => {
@@ -165,12 +186,34 @@ export default {
 
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
+    },
+    select (option) {
+      if (!option.selected) {
+        this.$set(option, 'selected', true)
+        this.optionIsCorrect = option.correct
+        this.showFeedback = true
+        setTimeout(() => {
+          this.showFeedback = false
+          setTimeout(() => (this.setFrame(option.frame)), 500)
+        }, 2000)
+      }
+    },
+    initVideo () {
+      this.setFrame(0)
+      this.$refs['video'].src = this.video.src
+      this.$refs['video'].load()
+    }
+  },
+  watch: {
+    'video.src' () {
+      this.initVideo()
+    },
+    'video.frames' (frames) {
+      if (!!frames && !!frames.length) this.setFrame(frames.length - 1)
     }
   },
   mounted () {
-    this.setFrame(0)
-    this.$refs['video'].src = this.video.src
-    this.$refs['video'].load()
+    this.initVideo()
   }
 }
 </script>
@@ -182,6 +225,9 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
   &__player {
     position: relative;
     flex-grow: 1;
@@ -208,7 +254,7 @@ export default {
       height: 100%;
       width: 100%;
       opacity: 0;
-      transition: opacity .4s;
+      transition: opacity .6s;
       &.show {
         opacity: 1;
       }
@@ -308,13 +354,12 @@ export default {
         }
       }
       &__options {
+        position: relative;
         display: grid;
-        align-self: flex-start;
         grid-template-rows: 1fr 3fr;
         height: calc(100% - #{250px});
         width: calc(100% - #{500px});
         background-color: #eee;
-        margin: 100px 250px;
         border-radius: 15px;
         &__question {
           background-color: #ccc;
@@ -344,14 +389,35 @@ export default {
             color: #999;
             font-size: 1.6rem;
             transition: all .2s;
-            box-shadow: 0px 0px 25px 0px #888;
+            box-shadow: 0px 0px 5px 0px #888;
             &:not(:last-child) {
               margin-right: 30px;
             }
             &:hover {
-              transform: scale(1.2);
-              box-shadow: 0px 0px 5px 0px #888;
+              box-shadow: 0px 0px 25px 0px #888;
             }
+          }
+        }
+        &__feedback {
+          position: absolute;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: #fff;
+          border-radius: 15px;
+          font-size: 2.4rem;
+          opacity: .85;
+          &.true:after {
+              content: 'True';
+              color: #5EC12D;
+          }
+          &.false:after {
+              content: 'False';
+              color: #C2003C;
           }
         }
       }
@@ -414,22 +480,22 @@ export default {
   }
 }
 
-.controls-transition {
+.fade {
   &-enter-active {
-    animation: fadeIn .5s ease backwards;
-    animation-delay: .5s;
+    animation: fadeOut .4s ease backwards;
+    animation-delay: .4s;
   }
   &-leave-active {
-    animation: fadeOut .5s ease backwards;
+    animation: fadeIn .4s ease backwards;
   }
 }
 
-@keyframes fadeIn {
+@keyframes fadeOut {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes fadeOut {
+@keyframes fadeIn {
   from { opacity: 1; }
   to { opacity: 0; }
 }
@@ -463,18 +529,28 @@ export default {
 	100% { transform: translate3d(0, 15px, 0) scale(.5); }
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 768px) {
   .video-choice {
     &__player {
       &__controls {
         &__play {
-          top: calc(50% - 25px);
-          left: calc(50% - 25px);
-          width: 50px;
-          height: 50px;
+          top: calc(50% - 40px);
+          left: calc(50% - 40px);
+          width: 80px;
+          height: 80px;
         }
         &__bottom {
           height: 30px;
+        }
+        &__options {
+          margin-bottom: 30px;
+          border-radius: 0px 0px 5px 5px;
+          width: 100%;
+          height: calc(100% - #{30px});
+          &__question {
+            font-size: 1.4rem;
+            padding: 5px;
+          }
         }
       }
     }

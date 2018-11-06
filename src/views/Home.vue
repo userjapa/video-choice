@@ -1,7 +1,9 @@
 <template>
   <div class="home">
     <img alt="Vue logo" src="../assets/logo.png">
-    <VideoChoice :video="video"/>
+    <div class="home__video">
+      <VideoChoice :video="video"/>
+    </div>
   </div>
 </template>
 
@@ -25,17 +27,20 @@ export default {
               {
                 text: 'Facebook',
                 frame: 1,
-                correct: false
+                correct: false,
+                selected: false
               },
               {
                 text: 'Instagram',
                 frame: 2,
-                correct: false
+                correct: false,
+                selected: false
               },
               {
                 text: 'Twitter',
                 frame: 3,
-                correct: true
+                correct: true,
+                selected: false
               }
             ]
           },
@@ -48,13 +53,15 @@ export default {
             options: [
               {
                 text: 'PT',
-                frame: 4,
-                correct: false
+                frame: 0,
+                correct: false,
+                selected: false
               },
               {
                 text: 'PSDB',
                 frame: 5,
-                correct: true
+                correct: true,
+                selected: false
               }
             ]
           },
@@ -68,12 +75,14 @@ export default {
               {
                 text: 'True',
                 frame: 5,
-                correct: false
+                correct: false,
+                selected: false
               },
               {
                 text: 'False',
                 frame: 6,
-                correct: true
+                correct: true,
+                selected: false
               }
             ]
           },
@@ -87,12 +96,14 @@ export default {
               {
                 text: 'Accept',
                 frame: 4,
-                correct: true
+                correct: true,
+                selected: false
               },
               {
                 text: 'Refuse',
                 frame: 6,
-                correct: true
+                correct: true,
+                selected: false
               }
             ]
           },
@@ -106,12 +117,14 @@ export default {
               {
                 text: 'Accept',
                 frame: 2,
-                correct: false
+                correct: false,
+                selected: false
               },
               {
                 text: 'Refuse',
                 frame: 5,
-                correct: true
+                correct: true,
+                selected: false
               }
             ]
           },
@@ -136,3 +149,14 @@ export default {
   }
 }
 </script>
+
+<style lang="scss">
+.home {
+  &__video {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100% - #{278px});
+  }
+}
+</style>
