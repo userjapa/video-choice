@@ -99,7 +99,7 @@ export default {
     },
     percent () {
       let percent = 0
-      if (!!this.currentFrame) percent = !!this.duration ? (((this.time - this.currentFrame.start ) * 100) / this.duration) : 0
+      if (this.currentFrame) percent = this.duration ? (((this.time - this.currentFrame.start) * 100) / this.duration) : 0
       else percent = (this.time * 100) / this.fullDuration
       if (isNaN(percent)) percent = 0
       return percent > 100 ? 100 : percent
@@ -131,7 +131,7 @@ export default {
       }
     },
     timeUpdated (video) {
-      if (!!this.currentFrame) {
+      if (this.currentFrame) {
         this.$set(this, 'time_old', this.time)
         this.$set(this, 'time', video.currentTime)
         if (this.currentFrame.end >= this.time_old && this.currentFrame.end <= this.time) {
@@ -148,7 +148,7 @@ export default {
         const el = this.$refs['line']
         const width = el.scrollWidth - 1
         const position = ev.pageX - 25
-        if (!!this.currentFrame) this.$refs['video'].currentTime = ((this.duration * position) / width) + this.currentFrame.start
+        if (this.currentFrame) this.$refs['video'].currentTime = ((this.duration * position) / width) + this.currentFrame.start
         else this.$refs['video'].currentTime = ((this.fullDuration * position) / width)
         if (this.showOptions) {
           setTimeout(() => {
@@ -174,18 +174,18 @@ export default {
 
         if (position < 0) position = 0
         if (position > rightEdge) position = rightEdge
-        if (!!this.currentFrame) video.currentTime = ((this.duration * position) / line.scrollWidth) + this.currentFrame.start
+        if (this.currentFrame) video.currentTime = ((this.duration * position) / line.scrollWidth) + this.currentFrame.start
         else video.currentTime = ((this.duration * position) / line.scrollWidth)
       }
 
       const onMouseUp = () => {
         if (wasPlaying) video.play()
-        document.removeEventListener('mouseup', onMouseUp);
-        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp)
+        document.removeEventListener('mousemove', onMouseMove)
       }
 
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
+      document.addEventListener('mousemove', onMouseMove)
+      document.addEventListener('mouseup', onMouseUp)
     },
     select (option) {
       if (!option.selected) {

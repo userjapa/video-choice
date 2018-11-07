@@ -3,7 +3,7 @@
     <div class="create__preview">
       <VideoChoice ref="game" :video="video"/>
     </div>
-    <form class="create__form" @submit.prevent="">
+    <form class="create__form" @submit.prevent="" v-if="!!game">
       <span>Video</span>
       <div class="create__form__field">
         <div class="create__form__field__label">
@@ -33,7 +33,14 @@
       </div>
       <div class="create__form__field">
         <div class="create__form__field__btn">
-          <button type="button" :disabled="!isFrameValid">Add Frame</button>
+          <button type="button" @click="addFrame(frame)" :disabled="!isFrameValid">Add Frame</button>
+        </div>
+      </div>
+      <div class="create__form__field">
+        <div class="create__form__field__items">
+          <div class="create__form__field__items__frame" v-for="f in video.frames">
+            {{ f.start }} - {{ f.end }}
+          </div>
         </div>
       </div>
     </form>
@@ -41,6 +48,7 @@
 </template>
 
 <script>
+import { cloneDeep } from 'lodash'
 import VideoChoice from './../components/VideoChoice'
 
 export default {
@@ -56,12 +64,13 @@ export default {
         hit: false,
         start: 0,
         end: 0
-      }
+      },
+      game: null
     }
   },
   computed: {
     duration () {
-      return this.$refs['game'] ? this.$refs['game'].fullDuration : 0
+      return !this.game ? 0 : this.game.fullDuration
     },
     isFrameValid () {
       let isValid = true
@@ -73,13 +82,23 @@ export default {
       return isValid
     }
   },
+  methods: {
+    addFrame (frame) {
+      this.video.frames.push(cloneDeep(frame))
+      this.frame = { start: 0, end: 0 }
+    }
+  },
   components: {
     VideoChoice
   },
   watch: {
     duration (duration) {
-      this.frame.end = duration
-    }
+      this.frame.end = duration.toFixed(0)
+    },
+
+  },
+  mounted () {
+    this.game = this.$refs['game']
   }
 }
 </script>
