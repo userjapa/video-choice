@@ -15,7 +15,7 @@ export default {
   data () {
     return {
       video: {
-        src: 'https://www.blogger.com/video-play.mp4?contentId=c294ea21682074f1',
+        src: 'https://r2---sn-bg0ezn7s.googlevideo.com/videoplayback?requiressl=yes&id=c5489436f19fae6d&itag=18&source=blogger&app=blogger&ip=0.0.0.0&ipbits=0&expire=1543594741&sparams=expire,id,ip,ipbits,itag,mip,mm,mn,ms,mv,pl,requiressl,sc,source&signature=20BC23AC6DA4553C9512ECA5F9D340E973A846B0.2019E33A321203FAA8226865A697A3F4E8BFF8E6&key=cms1&cms_redirect=yes&mip=2001:1284:f01c:23e3:7d92:b5fd:6f94:ca1f&mm=30&mn=sn-bg0ezn7s&ms=nxu&mt=1541447137&mv=m&pl=33&sc=yes',
         frames: [
           {
             answered: false,
