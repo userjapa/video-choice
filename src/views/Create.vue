@@ -55,7 +55,7 @@
             </div>
             <div class="create__form__field__items__frame__question">
               <div class="create__form__field__items__frame__question__text">
-
+                <input type="text" name="" value="">
               </div>
               <div class="create__form__field__items__frame__question__answers">
 
@@ -81,10 +81,12 @@ export default {
         frames: []
       },
       frame: {
-        answered: false,
-        hit: false,
         start: 0,
-        end: 0
+        end: 0,
+        question: {
+          text: '',
+          answers: []
+        }
       },
       question: {
         text: '',
@@ -99,8 +101,7 @@ export default {
       min: 0,
       duration: 0,
       time: 0,
-      time_old: 0,
-      showQuestion: true
+      showQuestion: false
     }
   },
   computed: {
@@ -108,7 +109,7 @@ export default {
       let isValid = true
       if (!this.video.src || !this.duration) isValid = false
       if (!!this.video.frames && !!this.video.frames.length) {
-        if (parseFloat(this.video.frames[this.video.frames.length - 1].start) >= this.duration) isValid = false
+        if (this.video.frames[this.video.frames.length - 1].start >= this.duration) isValid = false
       }
       return isValid
     }
@@ -122,15 +123,19 @@ export default {
     },
     setFrame (frame) {
       this.currentFrame = frame
+      this.$refs['video'].currentTime = !!frame ? frame.start : 0
     },
     getCurrentTime () {
-      this.frame.end = this.$refs['video'].currentTime.toFixed(0)
+      this.frame.end = parseFloat(this.$refs['video'].currentTime.toFixed(0))
     },
     timeUpdated (time) {
-      this.time_old = this.time
-      this.time = time.toFixed(0)
+      if (this.showQuestion) this.showQuestion = false
+      this.time = parseFloat(time.toFixed(0))
       if (!!this.currentFrame) {
-        if (this.time_old >= this.currentFrame.end && time <= this.currentFrame.end) this.$refs['video'].pause()
+        if (this.time == parseFloat(this.currentFrame.end)) {
+          this.$refs['video'].pause()
+          this.showQuestion = true
+        }
       }
     }
   },
@@ -139,16 +144,13 @@ export default {
   },
   watch: {
     duration (duration) {
-      this.frame.end = duration.toFixed(0)
+      this.frame.end = parseFloat(duration.toFixed(0))
     },
     'video.frames' (frames) {
       if (!frames.length) this.min = 0
       else this.min = parseFloat(frames[frames.length - 1].end) + 1
       this.frame.start = this.min
-      this.frame.end = this.duration.toFixed(0)
-    },
-    currentFrame (current) {
-      this.$refs['video'].currentTime = !!current ? current.start : 0
+      this.frame.end = parseFloat(this.duration.toFixed(0))
     }
   },
 }
@@ -174,8 +176,10 @@ export default {
         flex-direction: column;
         top: 0;
         left: 0;
-        background-image: linear-gradient(to bottom, #333 72.5%, #111);
+        background-color: #ddd;
         margin: 50px 100px 0px 100px;
+        border-radius: 20px;
+        box-shadow: 0px 0px 20px 0px #000;
         width: calc(100% - 200px);
         height: calc(100% - 150px);
         &__text {
