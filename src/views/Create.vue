@@ -1,5 +1,26 @@
 <template>
   <div class="create">
+    <div class="create__link">
+      <div class="create__link__field">
+        <div class="create__link__field__label">
+          <label for="video-source">Video Source</label>
+        </div>
+        <div class="create__link__field__input" v-if="!isFile">
+          <input id="video-source" type="text" v-model="video.src" placeholder="URL">
+        </div>
+        <div class="create__link__field__file" v-else>
+          <input id="video-source" type="file">
+        </div>
+        <div class="create__link__field__radio">
+          <label class="swich">
+            <input type="checkbox" name="video-isfile" v-model="isFile">
+            <!-- <span class="create__link__field__radio__swich__slider"></span> -->
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <hr>
+    </div>
     <div class="create__preview">
       <div class="create__preview__video">
         <video ref="video"
@@ -21,17 +42,7 @@
         </transition>
       </div>
     </div>
-    <form class="create__form" @submit.prevent="">
-      <span>Video</span>
-      <div class="create__form__field">
-        <div class="create__form__field__label">
-          <label for="video-source">Video Source</label>
-        </div>
-        <div class="create__form__field__input">
-          <input id="video-source" type="text" v-model="video.src">
-        </div>
-      </div>
-      <hr>
+    <form class="create__form" @submit.prevent="addFrame(frame)">
       <span>Frame</span>
       <div class="create__form__field">
         <div class="create__form__field__label">
@@ -44,12 +55,12 @@
       </div>
       <div class="create__form__field">
         <div class="create__form__field__btn">
-          <button type="button" @click="addFrame(frame)" :disabled="!isFrameValid">Add Frame</button>
+          <button type="submit" :disabled="!isFrameValid">Add Frame</button>
         </div>
       </div>
       <div class="create__form__field">
         <div class="create__form__field__items">
-          <div class="create__form__field__items__frame" v-for="f in video.frames" @click="setFrame(f)">
+          <div class="create__form__field__items__frame" v-for="(f, index) in video.frames" @click="setFrame(f)">
             <div class="create__form__field__items__frame__rate">
               <p>{{ f.start }} - {{ f.end }}</p>
             </div>
@@ -60,6 +71,10 @@
               <div class="create__form__field__items__frame__question__answers">
 
               </div>
+            </div>
+            <div class="create__form__field__items__frame__options">
+              <button type="button" name="edit">Edit</button>
+              <button type="button" name="remove" @click.prevent="removeFrame(index)">Remove</button>
             </div>
           </div>
         </div>
@@ -101,7 +116,8 @@ export default {
       min: 0,
       duration: 0,
       time: 0,
-      showQuestion: false
+      showQuestion: false,
+      isFile: false
     }
   },
   computed: {
@@ -137,6 +153,9 @@ export default {
           this.showQuestion = true
         }
       }
+    },
+    removeFrame (index) {
+      this.video.frames.splice(index, 1)
     }
   },
   components: {
@@ -158,10 +177,106 @@ export default {
 
 <style lang="scss">
 .create {
-  display: grid;
-  grid-template-columns: 1.75fr 1fr;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-direction: column;
+  &__link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50%;
+    &__field {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 5px;
+      min-width: 100%;
+      justify-content: center;
+      align-items: center;
+      &__label {
+        flex-basis: 105px;
+        text-align: right;
+        label {
+          margin-right: 5px;
+        }
+      }
+      &__input {
+        flex-basis: 255px;
+        input {
+          width: 200px;
+          float: left;
+          padding: 5px 10px;
+          border: 2px solid #ddd;
+          outline: none;
+          margin-right: 5px;
+        }
+      }
+      &__file {
+        flex-basis: 255px;
+      }
+      &__radio {
+        position: relative;
+        flex-basis: 64px;
+        height: 34px;
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 60px;
+          height: 34px;
+        }
+
+        .switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          -webkit-transition: .4s;
+          transition: .4s;
+          border-radius: 34px;
+        }
+
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 26px;
+          width: 26px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          -webkit-transition: .4s;
+          transition: .4s;
+          border-radius: 50%;
+        }
+
+        input:checked + .slider {
+          background-color: #42b983;
+        }
+
+        input:focus + .slider {
+          box-shadow: 0 0 1px #42b983;
+        }
+
+        input:checked + .slider:before {
+          -webkit-transform: translateX(26px);
+          -ms-transform: translateX(26px);
+          transform: translateX(26px);
+        }
+      }
+    }
+  }
   &__preview {
-    padding: 10px 5px 10px 10px;
+    min-width: 50%;
+    height: auto;
     video {
       min-width: 100%;
       max-width: 100%;
@@ -170,6 +285,8 @@ export default {
     }
     &__video {
       position: relative;
+      max-width: 100%;
+      max-height: 100%;
       &__question {
         position: absolute;
         display: flex;
@@ -209,7 +326,8 @@ export default {
     }
   }
   &__form {
-    padding: 10px 10px 10px 5px;
+    flex-basis: 50%;
+    min-width: 50%;
     &__field {
       display: flex;
       justify-content: center;
@@ -261,6 +379,8 @@ export default {
         justify-content: center;
         align-items: center;
         flex-direction: column;
+        max-height: 35vh;
+        overflow-y: auto;
         &__frame {
           display: flex;
           justify-content: center;
